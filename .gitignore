@@ -1,0 +1,8 @@
+.idea/
+*.html
+*.txt
+u.data
+u.genre
+u.item
+u.occupation
+u.user
