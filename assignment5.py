@@ -5,9 +5,16 @@ from os.path import isfile, join, exists
 OPEN FILES AND CREATE DICTIONARIES IF NECESSARY
 """
 outputReview = open("review.txt", "w", encoding="iso-8859-1")
+outputFilmGenre = open("filmGenre.txt", "w", encoding="iso-8859-1")
 
 filmsPath = "film"
 filmListPath = "filmList"
+filmGuessPath = "filmGuess"
+
+"""
+stop words
+"""
+stopWordsFile = open("stopwords.txt", "r", encoding="iso-8859-1")
 
 """
 movie id | movie title | video release date | IMDb URL
@@ -172,12 +179,75 @@ for movieId, movieValues in itemDictionary.items():
 STAGE 2
 """
 
+filmGuessFileList = [file for file in listdir(filmGuessPath) if isfile(join(filmGuessPath, file))]
+fileFilmNameList = []
+
+stopWordList = set([])
+for stop_word in stopWordsFile.readlines():
+    stopWordList.add(stop_word.rstrip("\n"))
+
+genreWords = {}  # This will be necessary for creating html files
+
+for movieId, movieValues in itemDictionary.items():
+    movie = movieValues[0].partition(" (")[0].lower()
+    if movie in existingFilms:
+        genres = ""
+        genreCount = 0
+        for genre in movieValues[3:]:
+            if genre == "1":
+                wordList = set([])
+                for word in movieReviewDictionary[movie].split(" "):
+                    wordList.add(word)
+                    if genreDictionary[str(genreCount)] in genreWords:
+                        genreWords[genreDictionary[str(genreCount)]] |= wordList
+                    else:
+                        genreWords[genreDictionary[str(genreCount)]] = set([])
+            genreCount += 1
+print(genreWords)
+
+filmGuessNames = {}
+
+for filmFile in filmGuessFileList:
+    filmFile = open(join(filmGuessPath, filmFile), "r")
+    filmName = filmFile.readline().partition(" (")[0].lower()
+    filmGuessNames[filmName] = []
+    reviewWords = set([])
+    for filmLine in filmFile.readlines():
+        if "REVIEWED ON" in filmLine:
+            break
+        else:
+            wordList = []
+            for word in filmLine.rstrip("\n").split(" "):
+                wordList.append(word)
+            reviewWords |= set(wordList)
+
+        reviewWords - stopWordList
+
+    for key, value in genreWords.items():
+        # print(filmName.upper() + " " + str(len(reviewWords.intersection(value))) + " " + key)
+        if len(reviewWords.intersection(value)) >= 20:
+            filmGuessNames[filmName].append(key)
+    filmFile.close()
+
+outputFilmGenre.write("Guess Genres of Movie based on Movies\n")
+
+for film, genres in filmGuessNames.items():
+    line = ""
+    line += film.upper() + " : "
+    for genre in genres:
+        line += genre + " "
+    line += "\n"
+    outputFilmGenre.write(line)
+
 """
 CLOSE FILES
 """
+stopWordsFile.close()
 itemFile.close()
 genreFile.close()
 userFile.close()
 occupationFile.close()
 dataFile.close()
+
 outputReview.close()
+outputFilmGenre.close()
